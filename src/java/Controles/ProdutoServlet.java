@@ -40,15 +40,16 @@ public class ProdutoServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
+        String nomeProduto = "";
 
         try (PrintWriter out = response.getWriter()) {
-            String nomeProduto = request.getParameter("nomeProduto");
+            nomeProduto = request.getParameter("nomeProduto");
 
             String resultado = "";
-            if (!nomeProduto.equals("")) {
-                resultado = listaProdutoNome(nomeProduto);
-            } else {
+            if (nomeProduto == null || nomeProduto.equals("")) {
                 resultado = listaProdutosCadastrados();
+            } else {
+                resultado = listaProdutoNome(nomeProduto);
             }
             request.getSession().setAttribute("resultado", resultado);
             response.sendRedirect(request.getContextPath() + "/paginas/produto.jsp");
