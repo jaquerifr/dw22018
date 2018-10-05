@@ -5,7 +5,9 @@
  */
 package Controles;
 
+import DAOs.DAOCategoria;
 import DAOs.DAOProduto;
+import Entidades.Categoria;
 import Entidades.Produto;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -41,15 +43,60 @@ public class ProdutoServlet extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         String nomeProduto = "";
+        String submitCadastro = "";
+        int categoriaId = 0;
 
         try (PrintWriter out = response.getWriter()) {
-            nomeProduto = request.getParameter("nomeProduto");
+            submitCadastro = request.getParameter("ok");
 
             String resultado = "";
-            if (nomeProduto == null || nomeProduto.equals("")) {
-                resultado = listaProdutosCadastrados();
+            if (submitCadastro == null) {
+                //se nao veio do submit é lista
+                //só precisa disso se a lista usa servlet, o primeiro jeito que vimos,
+                //se sua lista usa JSTL ou scriplet pode ir direto p/ cadastro, sem esse if
+                nomeProduto = request.getParameter("nomeProduto");
+                if (nomeProduto == null || nomeProduto.equals("")) {
+                    resultado = listaProdutosCadastrados();
+                } else {
+                    resultado = listaProdutoNome(nomeProduto);
+                }
             } else {
-                resultado = listaProdutoNome(nomeProduto);
+                //parametros do form
+                //aqui pq se passar do if não serão nulos
+                
+                //tudo que vem do formulario é string, por isso aqui alguns precisam de conversão
+                categoriaId = Integer.parseInt(request.getParameter("categoria"));
+                nomeProduto = request.getParameter("nome");
+                int produtoQuantidade = Integer.parseInt(request.getParameter("quantidade"));
+                Double produtoPreco = Double.parseDouble(request.getParameter("preco"));
+
+                DAOProduto daoProduto = new DAOProduto();
+                DAOCategoria daoCategoria = new DAOCategoria();
+                Produto produto = new Produto();
+
+                //busca a categoria do id selecionado no select do form
+                //busca com o listById para criar um objeto de entidade completo, 
+                //que é o parâmetro que o set de categoria pede
+                Categoria categoria = daoCategoria.listById(categoriaId).get(0);
+
+                //seta informacoes do produto na entidade
+                
+                //essa tabela nao tem id automatico no banco, então precisa setar
+                //para nao pedir p/ usuario no formulario e correr o risco de repetição
+                //use a função do dao p/ calcular o id
+                produto.setIdProduto(daoProduto.autoIdProduto());
+                produto.setNomeProduto(nomeProduto);
+                produto.setPrecoProduto(produtoPreco);
+                produto.setQuantidadeProduto(produtoQuantidade);
+                //seta a categoria do produto, que vai gravar apenas o id como fk no produto  no banco
+                //porém, aqui é orientado a objeto, então o categoria é um objeto da entidade categoria
+                produto.setCategoriaIdCategoria(categoria);
+
+                //insere o produto no banco
+                daoProduto.inserir(produto);
+                //faz a busca p/ direcionar p/ uma lista atualizada
+                //só se sua lista usa servlet, se for com JSTL ou scriplet é só redirecionar
+                resultado = listaProdutosCadastrados();
             }
             request.getSession().setAttribute("resultado", resultado);
             response.sendRedirect(request.getContextPath() + "/paginas/produto.jsp");
@@ -68,7 +115,7 @@ public class ProdutoServlet extends HttpServlet {
                     + "<td>" + l.getCategoriaIdCategoria().getNomeCategoria() + "</td>"
                     + "</tr>";
         }
-        
+
         return tabela;
     }
 
